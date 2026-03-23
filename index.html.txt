@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROD EXPRESS AI - Premium Studio</title>
+    <style>
+        :root {
+            --neon: #00ff88;
+            --bg: #0a0a0c;
+            --card: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0c 100%);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 450px;
+            background: var(--card);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, #00ff88, #00d1ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle { font-size: 0.7rem; color: #888; margin-bottom: 25px; text-transform: uppercase; }
+
+        .glass-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-main {
+            background: linear-gradient(135deg, #00ff88 0%, #00b362 100%);
+            color: #000;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(0, 255, 136, 0.2);
+        }
+
+        .btn-main:active { transform: scale(0.98); }
+
+        .speed-control { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
+        input[type="range"] { flex: 1; accent-color: var(--neon); cursor: pointer; }
+
+        audio { width: 100%; margin-top: 10px; border-radius: 10px; filter: invert(1); opacity: 0.8; }
+
+        #recordBtn {
+            background: #ff3e3e;
+            color: white;
+            border-radius: 50px;
+            padding: 18px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 62, 62, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 62, 62, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 62, 62, 0); }
+        }
+
+        .status-dot { height: 10px; width: 10px; background-color: #555; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .active-dot { background-color: var(--neon); box-shadow: 0 0 10px var(--neon); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>PROD EXPRESS AI</h1>
+    <div class="subtitle">Universal Studio Mastering Engine</div>
+
+    <div class="glass-box">
+        <input type="file" id="audioInput" accept="audio/*,video/*" style="display:none">
+        <button class="btn-main" onclick="document.getElementById('audioInput').click()">+ IMPORTER UN SON</button>
+        <p id="fileName" style="font-size: 0.8rem; margin-top: 10px; color: #00ff88;"></p>
+    </div>
+
+    <div id="studioControls" style="display:none;">
+        <div class="glass-box">
+            <label style="font-size: 0.8rem; color: #aaa;">VITESSE DU MASTER : <span id="speedVal" style="color:white; font-weight:bold;">1.0</span>x</label>
+            <div class="speed-control">
+                <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+        </div>
+
+        <div class="glass-box">
+            <div style="margin-bottom: 10px; font-size: 0.8rem;"><span class="status-dot active-dot"></span> MIXAGE STUDIO ACTIF</div>
+            <audio id="player" controls crossorigin="anonymous"></audio>
+        </div>
+
+        <button id="recordBtn" class="btn-main">LANCER LE RENDU FINAL</button>
+        <p style="font-size: 0.6rem; color: #666; margin-top: 10px;">L'enregistrement se terminera automatiquement à la fin du son.</p>
+    </div>
+</div>
+
+<script>
+    const audioInput = document.getElementById('audioInput');
+    const player = document.getElementById('player');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal = document.getElementById('speedVal');
+    const recordBtn = document.getElementById('recordBtn');
+    const studioControls = document.getElementById('studioControls');
+    const fileName = document.getElementById('fileName');
+
+    let audioCtx, source, mediaRecorder, chunks = [];
+
+    audioInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileName.innerText = "Fichier chargé : " + file.name;
+            player.src = URL.createObjectURL(file);
+            studioControls.style.display = 'block';
+            initStudio();
+        }
+    };
+
+    function initStudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaElementSource(player);
+
+        // --- TRAITEMENT STUDIO PRO ---
+        const equalizer = audioCtx.createBiquadFilter();
+        equalizer.type = "peaking";
+        equalizer.frequency.value = 2500; 
+        equalizer.gain.value = 10; // Donne de la présence à la voix
+
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
+        compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+
+        const limiter = audioCtx.createDynamicsCompressor();
+        limiter.threshold.setValueAtTime(-0.5, audioCtx.currentTime);
+
+        source.connect(equalizer);
+        equalizer.connect(compressor);
+        compressor.connect(limiter);
+        limiter.connect(audioCtx.destination);
+    }
+
+    speedSlider.oninput = () => {
+        player.playbackRate = speedSlider.value;
+        speedVal.innerText = speedSlider.value;
+    };
+
+    recordBtn.onclick = () => {
+        if (recordBtn.innerText === "LANCER LE RENDU FINAL") {
+            const stream = player.captureStream ? player.captureStream() : player.mozCaptureStream();
+            mediaRecorder = new MediaRecorder(stream);
+            chunks = [];
+
+            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/mp3' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = "Master_Studio_Express.mp3";
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                recordBtn.innerText = "LANCER LE RENDU FINAL";
+                recordBtn.style.background = "linear-gradient(135deg, #00ff88 0%, #00b362 100%)";
+            };
+
+            mediaRecorder.start();
+            player.play();
+            recordBtn.innerText = "ENREGISTREMENT EN COURS...";
+            recordBtn.style.background = "#ff3e3e";
+        } else {
+            mediaRecorder.stop();
+            player.pause();
+        }
+    };
+
+    // Arrêt automatique à la fin
+    player.onended = () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+    };
+</script>
+
+</body>
+</html>
